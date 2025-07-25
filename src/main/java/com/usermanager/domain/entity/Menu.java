@@ -3,6 +3,8 @@ package com.usermanager.domain.entity;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import lombok.*;
+import lombok.experimental.SuperBuilder;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -13,6 +15,12 @@ import java.util.List;
     @Index(name = "idx_menu_parent_id", columnList = "parent_id"),
     @Index(name = "idx_menu_order", columnList = "display_order")
 })
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@ToString(callSuper = true, exclude = {"parent", "children"})
+@SuperBuilder
 public class Menu extends BaseEntity {
 
     @NotBlank
@@ -38,9 +46,11 @@ public class Menu extends BaseEntity {
     private String icon;
 
     @Column(name = "display_order", nullable = false)
+    @Builder.Default
     private Integer displayOrder = 0;
 
     @Column(name = "visible", nullable = false)
+    @Builder.Default
     private Boolean visible = true;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -49,24 +59,26 @@ public class Menu extends BaseEntity {
 
     @OneToMany(mappedBy = "parent", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     @OrderBy("displayOrder ASC")
+    @Builder.Default
     private List<Menu> children = new ArrayList<>();
 
     @Column(name = "required_permission", length = 100)
     private String requiredPermission;
 
     @Column(name = "menu_level", nullable = false)
+    @Builder.Default
     private Integer level = 0;
 
-    // Constructors
-    public Menu() {
-        super();
-    }
-
+    // Custom constructors for business use
     public Menu(String code, String name, String url) {
-        this();
+        super();
         this.code = code;
         this.name = name;
         this.url = url;
+        this.displayOrder = 0;
+        this.visible = true;
+        this.children = new ArrayList<>();
+        this.level = 0;
     }
 
     public Menu(String code, String name, String url, Menu parent) {
@@ -109,94 +121,5 @@ public class Menu extends BaseEntity {
 
     public void hide() {
         this.visible = false;
-    }
-
-    // Getters and Setters
-    public String getCode() {
-        return code;
-    }
-
-    public void setCode(String code) {
-        this.code = code;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
-    public String getUrl() {
-        return url;
-    }
-
-    public void setUrl(String url) {
-        this.url = url;
-    }
-
-    public String getIcon() {
-        return icon;
-    }
-
-    public void setIcon(String icon) {
-        this.icon = icon;
-    }
-
-    public Integer getDisplayOrder() {
-        return displayOrder;
-    }
-
-    public void setDisplayOrder(Integer displayOrder) {
-        this.displayOrder = displayOrder;
-    }
-
-    public Boolean getVisible() {
-        return visible;
-    }
-
-    public void setVisible(Boolean visible) {
-        this.visible = visible;
-    }
-
-    public Menu getParent() {
-        return parent;
-    }
-
-    public void setParent(Menu parent) {
-        this.parent = parent;
-    }
-
-    public List<Menu> getChildren() {
-        return children;
-    }
-
-    public void setChildren(List<Menu> children) {
-        this.children = children;
-    }
-
-    public String getRequiredPermission() {
-        return requiredPermission;
-    }
-
-    public void setRequiredPermission(String requiredPermission) {
-        this.requiredPermission = requiredPermission;
-    }
-
-    public Integer getLevel() {
-        return level;
-    }
-
-    public void setLevel(Integer level) {
-        this.level = level;
     }
 }

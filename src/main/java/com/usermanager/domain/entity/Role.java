@@ -3,6 +3,8 @@ package com.usermanager.domain.entity;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import lombok.*;
+import lombok.experimental.SuperBuilder;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -12,6 +14,12 @@ import java.util.Set;
     @Index(name = "idx_role_name", columnList = "name", unique = true),
     @Index(name = "idx_role_code", columnList = "code", unique = true)
 })
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@ToString(callSuper = true, exclude = {"users", "permissions"})
+@SuperBuilder
 public class Role extends BaseEntity {
 
     @NotBlank
@@ -29,9 +37,11 @@ public class Role extends BaseEntity {
     private String description;
 
     @Column(name = "system_role", nullable = false)
+    @Builder.Default
     private Boolean systemRole = false;
 
     @ManyToMany(mappedBy = "roles", fetch = FetchType.LAZY)
+    @Builder.Default
     private Set<User> users = new HashSet<>();
 
     @ManyToMany(fetch = FetchType.LAZY)
@@ -44,18 +54,18 @@ public class Role extends BaseEntity {
             @Index(name = "idx_role_permissions_permission_id", columnList = "permission_id")
         }
     )
+    @Builder.Default
     private Set<Permission> permissions = new HashSet<>();
 
-    // Constructors
-    public Role() {
-        super();
-    }
-
+    // Custom constructors for business use
     public Role(String name, String code, String description) {
-        this();
+        super();
         this.name = name;
         this.code = code;
         this.description = description;
+        this.systemRole = false;
+        this.users = new HashSet<>();
+        this.permissions = new HashSet<>();
     }
 
     public Role(String name, String code, String description, Boolean systemRole) {
@@ -81,54 +91,5 @@ public class Role extends BaseEntity {
 
     public boolean isSystemRole() {
         return Boolean.TRUE.equals(systemRole);
-    }
-
-    // Getters and Setters
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public String getCode() {
-        return code;
-    }
-
-    public void setCode(String code) {
-        this.code = code;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
-    public Boolean getSystemRole() {
-        return systemRole;
-    }
-
-    public void setSystemRole(Boolean systemRole) {
-        this.systemRole = systemRole;
-    }
-
-    public Set<User> getUsers() {
-        return users;
-    }
-
-    public void setUsers(Set<User> users) {
-        this.users = users;
-    }
-
-    public Set<Permission> getPermissions() {
-        return permissions;
-    }
-
-    public void setPermissions(Set<Permission> permissions) {
-        this.permissions = permissions;
     }
 }

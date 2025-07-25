@@ -4,6 +4,8 @@ import com.usermanager.domain.enums.PermissionType;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import lombok.*;
+import lombok.experimental.SuperBuilder;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -14,6 +16,12 @@ import java.util.Set;
     @Index(name = "idx_permission_type", columnList = "type"),
     @Index(name = "idx_permission_resource", columnList = "resource")
 })
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@ToString(callSuper = true, exclude = {"roles"})
+@SuperBuilder
 public class Permission extends BaseEntity {
 
     @NotBlank
@@ -45,23 +53,23 @@ public class Permission extends BaseEntity {
     private String action;
 
     @Column(name = "system_permission", nullable = false)
+    @Builder.Default
     private Boolean systemPermission = false;
 
     @ManyToMany(mappedBy = "permissions", fetch = FetchType.LAZY)
+    @Builder.Default
     private Set<Role> roles = new HashSet<>();
 
-    // Constructors
-    public Permission() {
-        super();
-    }
-
+    // Custom constructors for business use
     public Permission(String code, String name, PermissionType type, String resource, String action) {
-        this();
+        super();
         this.code = code;
         this.name = name;
         this.type = type;
         this.resource = resource;
         this.action = action;
+        this.systemPermission = false;
+        this.roles = new HashSet<>();
     }
 
     public Permission(String code, String name, String description, PermissionType type, String resource, String action) {
@@ -76,70 +84,5 @@ public class Permission extends BaseEntity {
 
     public String getFullCode() {
         return resource + ":" + action;
-    }
-
-    // Getters and Setters
-    public String getCode() {
-        return code;
-    }
-
-    public void setCode(String code) {
-        this.code = code;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
-    public PermissionType getType() {
-        return type;
-    }
-
-    public void setType(PermissionType type) {
-        this.type = type;
-    }
-
-    public String getResource() {
-        return resource;
-    }
-
-    public void setResource(String resource) {
-        this.resource = resource;
-    }
-
-    public String getAction() {
-        return action;
-    }
-
-    public void setAction(String action) {
-        this.action = action;
-    }
-
-    public Boolean getSystemPermission() {
-        return systemPermission;
-    }
-
-    public void setSystemPermission(Boolean systemPermission) {
-        this.systemPermission = systemPermission;
-    }
-
-    public Set<Role> getRoles() {
-        return roles;
-    }
-
-    public void setRoles(Set<Role> roles) {
-        this.roles = roles;
     }
 }

@@ -129,7 +129,13 @@ public class SecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(Arrays.asList(allowedOrigins));
         configuration.setAllowedMethods(Arrays.asList(allowedMethods.split(",")));
-        configuration.setAllowedHeaders(Arrays.asList(allowedHeaders.equals("*") ? "*" : allowedHeaders.split(",")));
+        
+        if (allowedHeaders.equals("*")) {
+            configuration.setAllowedHeaders(List.of("*"));
+        } else {
+            configuration.setAllowedHeaders(Arrays.asList(allowedHeaders.split(",")));
+        }
+        
         configuration.setAllowCredentials(allowCredentials);
         configuration.setMaxAge(3600L);
 

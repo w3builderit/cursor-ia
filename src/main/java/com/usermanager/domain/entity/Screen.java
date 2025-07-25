@@ -4,6 +4,8 @@ import com.usermanager.domain.enums.ScreenType;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import lombok.*;
+import lombok.experimental.SuperBuilder;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -14,6 +16,12 @@ import java.util.Set;
     @Index(name = "idx_screen_type", columnList = "type"),
     @Index(name = "idx_screen_module", columnList = "module")
 })
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@ToString(callSuper = true)
+@SuperBuilder
 public class Screen extends BaseEntity {
 
     @NotBlank
@@ -48,9 +56,11 @@ public class Screen extends BaseEntity {
     private String component;
 
     @Column(name = "public_access", nullable = false)
+    @Builder.Default
     private Boolean publicAccess = false;
 
     @Column(name = "auth_required", nullable = false)
+    @Builder.Default
     private Boolean authRequired = true;
 
     @ElementCollection(fetch = FetchType.LAZY)
@@ -60,25 +70,27 @@ public class Screen extends BaseEntity {
         indexes = @Index(name = "idx_screen_permissions_screen_id", columnList = "screen_id")
     )
     @Column(name = "permission_code", length = 100)
+    @Builder.Default
     private Set<String> requiredPermissions = new HashSet<>();
 
     @Column(name = "cache_enabled", nullable = false)
+    @Builder.Default
     private Boolean cacheEnabled = false;
 
     @Column(name = "cache_duration")
     private Integer cacheDuration; // in minutes
 
-    // Constructors
-    public Screen() {
-        super();
-    }
-
+    // Custom constructors for business use
     public Screen(String code, String name, ScreenType type, String module) {
-        this();
+        super();
         this.code = code;
         this.name = name;
         this.type = type;
         this.module = module;
+        this.publicAccess = false;
+        this.authRequired = true;
+        this.requiredPermissions = new HashSet<>();
+        this.cacheEnabled = false;
     }
 
     public Screen(String code, String name, ScreenType type, String module, String route) {
@@ -119,102 +131,5 @@ public class Screen extends BaseEntity {
     public void disableCache() {
         this.cacheEnabled = false;
         this.cacheDuration = null;
-    }
-
-    // Getters and Setters
-    public String getCode() {
-        return code;
-    }
-
-    public void setCode(String code) {
-        this.code = code;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
-    public ScreenType getType() {
-        return type;
-    }
-
-    public void setType(ScreenType type) {
-        this.type = type;
-    }
-
-    public String getModule() {
-        return module;
-    }
-
-    public void setModule(String module) {
-        this.module = module;
-    }
-
-    public String getRoute() {
-        return route;
-    }
-
-    public void setRoute(String route) {
-        this.route = route;
-    }
-
-    public String getComponent() {
-        return component;
-    }
-
-    public void setComponent(String component) {
-        this.component = component;
-    }
-
-    public Boolean getPublicAccess() {
-        return publicAccess;
-    }
-
-    public void setPublicAccess(Boolean publicAccess) {
-        this.publicAccess = publicAccess;
-    }
-
-    public Boolean getAuthRequired() {
-        return authRequired;
-    }
-
-    public void setAuthRequired(Boolean authRequired) {
-        this.authRequired = authRequired;
-    }
-
-    public Set<String> getRequiredPermissions() {
-        return requiredPermissions;
-    }
-
-    public void setRequiredPermissions(Set<String> requiredPermissions) {
-        this.requiredPermissions = requiredPermissions;
-    }
-
-    public Boolean getCacheEnabled() {
-        return cacheEnabled;
-    }
-
-    public void setCacheEnabled(Boolean cacheEnabled) {
-        this.cacheEnabled = cacheEnabled;
-    }
-
-    public Integer getCacheDuration() {
-        return cacheDuration;
-    }
-
-    public void setCacheDuration(Integer cacheDuration) {
-        this.cacheDuration = cacheDuration;
     }
 }

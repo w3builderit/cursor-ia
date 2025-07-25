@@ -2,11 +2,16 @@ package com.usermanager.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import lombok.*;
 
 import java.time.LocalDateTime;
 import java.util.Set;
 import java.util.UUID;
 
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class RoleDto {
 
     private UUID id;
@@ -29,9 +34,7 @@ public class RoleDto {
     private Long version;
     private Boolean active;
 
-    // Constructors
-    public RoleDto() {}
-
+    // Custom constructors for business use
     public RoleDto(String name, String code) {
         this.name = name;
         this.code = code;
@@ -50,86 +53,5 @@ public class RoleDto {
 
     public boolean isActive() {
         return Boolean.TRUE.equals(active);
-    }
-
-    // Getters and Setters
-    public UUID getId() {
-        return id;
-    }
-
-    public void setId(UUID id) {
-        this.id = id;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public String getCode() {
-        return code;
-    }
-
-    public void setCode(String code) {
-        this.code = code;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
-    public Boolean getSystemRole() {
-        return systemRole;
-    }
-
-    public void setSystemRole(Boolean systemRole) {
-        this.systemRole = systemRole;
-    }
-
-    public Set<PermissionDto> getPermissions() {
-        return permissions;
-    }
-
-    public void setPermissions(Set<PermissionDto> permissions) {
-        this.permissions = permissions;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public void setUpdatedAt(LocalDateTime updatedAt) {
-        this.updatedAt = updatedAt;
-    }
-
-    public Long getVersion() {
-        return version;
-    }
-
-    public void setVersion(Long version) {
-        this.version = version;
-    }
-
-    public Boolean getActive() {
-        return active;
-    }
-
-    public void setActive(Boolean active) {
-        this.active = active;
     }
 }

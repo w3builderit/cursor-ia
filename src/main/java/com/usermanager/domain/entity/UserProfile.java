@@ -4,6 +4,8 @@ import com.usermanager.domain.enums.ProfileType;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import lombok.*;
+import lombok.experimental.SuperBuilder;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -16,6 +18,12 @@ import java.util.Set;
     @Index(name = "idx_user_profile_type", columnList = "type"),
     @Index(name = "idx_user_profile_name", columnList = "name")
 })
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@ToString(callSuper = true, exclude = {"user"})
+@SuperBuilder
 public class UserProfile extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -36,9 +44,11 @@ public class UserProfile extends BaseEntity {
     private ProfileType type;
 
     @Column(name = "is_default", nullable = false)
+    @Builder.Default
     private Boolean isDefault = false;
 
     @Column(name = "is_public", nullable = false)
+    @Builder.Default
     private Boolean isPublic = false;
 
     @ElementCollection(fetch = FetchType.LAZY)
@@ -49,6 +59,7 @@ public class UserProfile extends BaseEntity {
     )
     @MapKeyColumn(name = "attribute_key", length = 100)
     @Column(name = "attribute_value", length = 1000)
+    @Builder.Default
     private Map<String, String> attributes = new HashMap<>();
 
     @ElementCollection(fetch = FetchType.LAZY)
@@ -58,6 +69,7 @@ public class UserProfile extends BaseEntity {
         indexes = @Index(name = "idx_user_profile_permissions_profile_id", columnList = "profile_id")
     )
     @Column(name = "permission_code", length = 100)
+    @Builder.Default
     private Set<String> permissions = new HashSet<>();
 
     @ElementCollection(fetch = FetchType.LAZY)
@@ -68,21 +80,23 @@ public class UserProfile extends BaseEntity {
     )
     @MapKeyColumn(name = "preference_key", length = 100)
     @Column(name = "preference_value", length = 500)
+    @Builder.Default
     private Map<String, String> preferences = new HashMap<>();
 
     @Column(name = "context", length = 100)
     private String context; // e.g., department, project, role context
 
-    // Constructors
-    public UserProfile() {
-        super();
-    }
-
+    // Custom constructors for business use
     public UserProfile(User user, String name, ProfileType type) {
-        this();
+        super();
         this.user = user;
         this.name = name;
         this.type = type;
+        this.isDefault = false;
+        this.isPublic = false;
+        this.attributes = new HashMap<>();
+        this.permissions = new HashSet<>();
+        this.preferences = new HashMap<>();
     }
 
     public UserProfile(User user, String name, ProfileType type, String context) {
@@ -153,86 +167,5 @@ public class UserProfile extends BaseEntity {
 
     public void makePrivate() {
         this.isPublic = false;
-    }
-
-    // Getters and Setters
-    public User getUser() {
-        return user;
-    }
-
-    public void setUser(User user) {
-        this.user = user;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
-    public ProfileType getType() {
-        return type;
-    }
-
-    public void setType(ProfileType type) {
-        this.type = type;
-    }
-
-    public Boolean getIsDefault() {
-        return isDefault;
-    }
-
-    public void setIsDefault(Boolean isDefault) {
-        this.isDefault = isDefault;
-    }
-
-    public Boolean getIsPublic() {
-        return isPublic;
-    }
-
-    public void setIsPublic(Boolean isPublic) {
-        this.isPublic = isPublic;
-    }
-
-    public Map<String, String> getAttributes() {
-        return attributes;
-    }
-
-    public void setAttributes(Map<String, String> attributes) {
-        this.attributes = attributes;
-    }
-
-    public Set<String> getPermissions() {
-        return permissions;
-    }
-
-    public void setPermissions(Set<String> permissions) {
-        this.permissions = permissions;
-    }
-
-    public Map<String, String> getPreferences() {
-        return preferences;
-    }
-
-    public void setPreferences(Map<String, String> preferences) {
-        this.preferences = preferences;
-    }
-
-    public String getContext() {
-        return context;
-    }
-
-    public void setContext(String context) {
-        this.context = context;
     }
 }
