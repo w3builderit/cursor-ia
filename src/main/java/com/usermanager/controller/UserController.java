@@ -92,7 +92,7 @@ public class UserController {
     public ResponseEntity<UserDto> updateCurrentUser(@Valid @RequestBody UserDto userDto, Authentication authentication) {
         return userService.getUserByUsername(authentication.getName())
                 .map(currentUser -> {
-                    UserDto updatedUser = userService.updateUser(currentUser.getId(), userDto);
+                    UserDto updatedUser = userService.updateUser(currentUser.id(), userDto);
                     return ResponseEntity.ok(updatedUser);
                 })
                 .orElse(ResponseEntity.notFound().build());

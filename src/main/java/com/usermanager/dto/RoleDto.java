@@ -7,40 +7,35 @@ import java.time.LocalDateTime;
 import java.util.Set;
 import java.util.UUID;
 
-public class RoleDto {
-
-    private UUID id;
-
+public record RoleDto(
+    UUID id,
+    
     @NotBlank(message = "Role name is required")
     @Size(max = 100, message = "Role name must not exceed 100 characters")
-    private String name;
-
+    String name,
+    
     @NotBlank(message = "Role code is required")
     @Size(max = 50, message = "Role code must not exceed 50 characters")
-    private String code;
-
+    String code,
+    
     @Size(max = 500, message = "Description must not exceed 500 characters")
-    private String description;
+    String description,
+    
+    Boolean systemRole,
+    Set<PermissionDto> permissions,
+    LocalDateTime createdAt,
+    LocalDateTime updatedAt,
+    Long version,
+    Boolean active
+) {
 
-    private Boolean systemRole;
-    private Set<PermissionDto> permissions;
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
-    private Long version;
-    private Boolean active;
-
-    // Constructors
-    public RoleDto() {}
-
+    // Alternative constructors
     public RoleDto(String name, String code) {
-        this.name = name;
-        this.code = code;
+        this(null, name, code, null, null, null, null, null, null, null);
     }
 
     public RoleDto(String name, String code, String description) {
-        this.name = name;
-        this.code = code;
-        this.description = description;
+        this(null, name, code, description, null, null, null, null, null, null);
     }
 
     // Helper methods
@@ -50,86 +45,5 @@ public class RoleDto {
 
     public boolean isActive() {
         return Boolean.TRUE.equals(active);
-    }
-
-    // Getters and Setters
-    public UUID getId() {
-        return id;
-    }
-
-    public void setId(UUID id) {
-        this.id = id;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public String getCode() {
-        return code;
-    }
-
-    public void setCode(String code) {
-        this.code = code;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
-    public Boolean getSystemRole() {
-        return systemRole;
-    }
-
-    public void setSystemRole(Boolean systemRole) {
-        this.systemRole = systemRole;
-    }
-
-    public Set<PermissionDto> getPermissions() {
-        return permissions;
-    }
-
-    public void setPermissions(Set<PermissionDto> permissions) {
-        this.permissions = permissions;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public void setUpdatedAt(LocalDateTime updatedAt) {
-        this.updatedAt = updatedAt;
-    }
-
-    public Long getVersion() {
-        return version;
-    }
-
-    public void setVersion(Long version) {
-        this.version = version;
-    }
-
-    public Boolean getActive() {
-        return active;
-    }
-
-    public void setActive(Boolean active) {
-        this.active = active;
     }
 }
