@@ -6,18 +6,16 @@ import com.usermanager.domain.enums.PaperStatus;
 import com.usermanager.domain.enums.PaperType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
+import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.data.mongodb.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
 @Repository
-public interface PaperRepository extends JpaRepository<Paper, UUID> {
+public interface PaperRepository extends MongoRepository<Paper, String> {
 
     Optional<Paper> findByCode(String code);
 
@@ -39,88 +37,84 @@ public interface PaperRepository extends JpaRepository<Paper, UUID> {
 
     Page<Paper> findByCreatedBy(User createdBy, Pageable pageable);
 
-    List<Paper> findByCreatedById(UUID createdById);
+    @Query("{'createdBy.$id': ?0}")
+    List<Paper> findByCreatedById(String createdById);
 
-    Page<Paper> findByCreatedById(UUID createdById, Pageable pageable);
+    @Query("{'createdBy.$id': ?0}")
+    Page<Paper> findByCreatedById(String createdById, Pageable pageable);
 
     List<Paper> findByIsLatestVersion(Boolean isLatestVersion);
 
     Page<Paper> findByIsLatestVersion(Boolean isLatestVersion, Pageable pageable);
 
-    @Query("SELECT p FROM Paper p WHERE p.active = true")
+    @Query("{'active': true}")
     List<Paper> findAllActivePapers();
 
-    @Query("SELECT p FROM Paper p WHERE p.active = true")
+    @Query("{'active': true}")
     Page<Paper> findAllActivePapers(Pageable pageable);
 
-    @Query("SELECT p FROM Paper p WHERE p.status = :status AND p.active = true")
-    Page<Paper> findByStatusAndActive(@Param("status") PaperStatus status, Pageable pageable);
+    @Query("{'status': ?0, 'active': true}")
+    Page<Paper> findByStatusAndActive(PaperStatus status, Pageable pageable);
 
-    @Query("SELECT p FROM Paper p WHERE p.type = :type AND p.active = true")
-    Page<Paper> findByTypeAndActive(@Param("type") PaperType type, Pageable pageable);
+    @Query("{'type': ?0, 'active': true}")
+    Page<Paper> findByTypeAndActive(PaperType type, Pageable pageable);
 
-    @Query("SELECT p FROM Paper p WHERE p.category = :category AND p.active = true")
-    Page<Paper> findByCategoryAndActive(@Param("category") String category, Pageable pageable);
+    @Query("{'category': ?0, 'active': true}")
+    Page<Paper> findByCategoryAndActive(String category, Pageable pageable);
 
-    @Query("SELECT p FROM Paper p WHERE " +
-           "(LOWER(p.title) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
-           "LOWER(p.code) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
-           "LOWER(p.description) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
-           "LOWER(p.category) LIKE LOWER(CONCAT('%', :searchTerm, '%'))) AND " +
-           "p.active = true")
-    Page<Paper> searchActivePapers(@Param("searchTerm") String searchTerm, Pageable pageable);
+    @Query("{'$and': [" +
+           "{'$or': [" +
+           "{'title': {'$regex': ?0, '$options': 'i'}}, " +
+           "{'code': {'$regex': ?0, '$options': 'i'}}, " +
+           "{'description': {'$regex': ?0, '$options': 'i'}}, " +
+           "{'category': {'$regex': ?0, '$options': 'i'}}" +
+           "]}, " +
+           "{'active': true}" +
+           "]}")
+    Page<Paper> searchActivePapers(String searchTerm, Pageable pageable);
 
-    @Query("SELECT p FROM Paper p WHERE p.createdBy.id = :userId AND p.active = true")
-    Page<Paper> findByCreatedByIdAndActive(@Param("userId") UUID userId, Pageable pageable);
+    @Query("{'createdBy.$id': ?0, 'active': true}")
+    Page<Paper> findByCreatedByIdAndActive(String userId, Pageable pageable);
 
-    @Query("SELECT p FROM Paper p WHERE p.status = 'PUBLISHED' AND p.active = true AND " +
-           "(p.expiresAt IS NULL OR p.expiresAt > CURRENT_TIMESTAMP)")
+    @Query("{'status': 'PUBLISHED', 'active': true, '$or': [{'expiresAt': null}, {'expiresAt': {'$gt': ?#{new java.util.Date()}}}]}")
     Page<Paper> findPublishedAndNotExpired(Pageable pageable);
 
-    @Query("SELECT p FROM Paper p WHERE p.expiresAt IS NOT NULL AND p.expiresAt < CURRENT_TIMESTAMP AND p.active = true")
+    @Query("{'expiresAt': {'$ne': null, '$lt': ?#{new java.util.Date()}}, 'active': true}")
     List<Paper> findExpiredPapers();
 
-    @Query("SELECT p FROM Paper p WHERE p.publishedAt IS NOT NULL AND " +
-           "p.publishedAt >= :startDate AND p.publishedAt <= :endDate AND p.active = true")
-    List<Paper> findPublishedBetween(@Param("startDate") LocalDateTime startDate, 
-                                     @Param("endDate") LocalDateTime endDate);
+    @Query("{'publishedAt': {'$ne': null, '$gte': ?0, '$lte': ?1}, 'active': true}")
+    List<Paper> findPublishedBetween(LocalDateTime startDate, LocalDateTime endDate);
 
-    @Query("SELECT p FROM Paper p WHERE p.isLatestVersion = true AND p.active = true")
+    @Query("{'isLatestVersion': true, 'active': true}")
     Page<Paper> findLatestVersionsOnly(Pageable pageable);
 
-    @Query("SELECT p FROM Paper p WHERE p.parentPaperId = :parentPaperId AND p.active = true ORDER BY p.versionNumber DESC")
-    List<Paper> findVersionsByParentPaperId(@Param("parentPaperId") String parentPaperId);
+    @Query(value = "{'parentPaperId': ?0, 'active': true}", sort = "{'versionNumber': -1}")
+    List<Paper> findVersionsByParentPaperId(String parentPaperId);
 
-    @Query("SELECT COUNT(p) FROM Paper p WHERE p.status = :status AND p.active = true")
-    long countByStatusAndActive(@Param("status") PaperStatus status);
+    @Query(value = "{'status': ?0, 'active': true}", count = true)
+    long countByStatusAndActive(PaperStatus status);
 
-    @Query("SELECT COUNT(p) FROM Paper p WHERE p.createdBy.id = :userId AND p.active = true")
-    long countByCreatedByIdAndActive(@Param("userId") UUID userId);
+    @Query(value = "{'createdBy.$id': ?0, 'active': true}", count = true)
+    long countByCreatedByIdAndActive(String userId);
 
-    @Query("SELECT p.category, COUNT(p) FROM Paper p WHERE p.active = true GROUP BY p.category")
-    List<Object[]> countPapersByCategory();
-
-    @Query("SELECT p.type, COUNT(p) FROM Paper p WHERE p.active = true GROUP BY p.type")
-    List<Object[]> countPapersByType();
-
-    @Query("SELECT DISTINCT p.category FROM Paper p WHERE p.active = true ORDER BY p.category")
+    @Query(value = "{'active': true}", fields = "{'category': 1, '_id': 0}")
     List<String> findDistinctCategories();
 
-    @Query("SELECT p FROM Paper p WHERE SIZE(p.requiredPermissions) = 0 AND p.active = true")
+    @Query("{'requiredPermissions': {'$size': 0}, 'active': true}")
     List<Paper> findPapersWithoutPermissions();
 
-    @Query("SELECT p FROM Paper p WHERE :permissionCode MEMBER OF p.requiredPermissions AND p.active = true")
-    List<Paper> findByRequiredPermissionAndActive(@Param("permissionCode") String permissionCode);
+    @Query("{'requiredPermissions': ?0, 'active': true}")
+    List<Paper> findByRequiredPermissionAndActive(String permissionCode);
 
-    @Query("SELECT p FROM Paper p WHERE :tag MEMBER OF p.tags AND p.active = true")
-    Page<Paper> findByTagAndActive(@Param("tag") String tag, Pageable pageable);
+    @Query("{'tags': ?0, 'active': true}")
+    Page<Paper> findByTagAndActive(String tag, Pageable pageable);
 
-    @Query("SELECT p FROM Paper p WHERE p.active = true ORDER BY p.downloadCount DESC")
+    @Query(value = "{'active': true}", sort = "{'downloadCount': -1}")
     Page<Paper> findMostDownloaded(Pageable pageable);
 
-    @Query("SELECT p FROM Paper p WHERE p.active = true ORDER BY p.viewCount DESC")
+    @Query(value = "{'active': true}", sort = "{'viewCount': -1}")
     Page<Paper> findMostViewed(Pageable pageable);
 
-    @Query("SELECT p FROM Paper p WHERE p.active = true ORDER BY p.publishedAt DESC")
+    @Query(value = "{'active': true}", sort = "{'publishedAt': -1}")
     Page<Paper> findRecentlyPublished(Pageable pageable);
 }

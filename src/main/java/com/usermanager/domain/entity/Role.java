@@ -1,49 +1,43 @@
 package com.usermanager.domain.entity;
 
-import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.mapping.DocumentReference;
+import org.springframework.data.mongodb.core.mapping.Field;
+import org.springframework.data.mongodb.core.index.Indexed;
 
 import java.util.HashSet;
 import java.util.Set;
 
-@Entity
-@Table(name = "roles", indexes = {
-    @Index(name = "idx_role_name", columnList = "name", unique = true),
-    @Index(name = "idx_role_code", columnList = "code", unique = true)
-})
+@Document(collection = "roles")
 public class Role extends BaseEntity {
 
     @NotBlank
     @Size(max = 100)
-    @Column(name = "name", nullable = false, unique = true, length = 100)
+    @Field("name")
+    @Indexed(unique = true)
     private String name;
 
     @NotBlank
     @Size(max = 50)
-    @Column(name = "code", nullable = false, unique = true, length = 50)
+    @Field("code")
+    @Indexed(unique = true)
     private String code;
 
     @Size(max = 500)
-    @Column(name = "description", length = 500)
+    @Field("description")
     private String description;
 
-    @Column(name = "system_role", nullable = false)
+    @Field("system_role")
     private Boolean systemRole = false;
 
-    @ManyToMany(mappedBy = "roles", fetch = FetchType.LAZY)
+    @DocumentReference(lazy = true)
+    @Field("users")
     private Set<User> users = new HashSet<>();
 
-    @ManyToMany(fetch = FetchType.LAZY)
-    @JoinTable(
-        name = "role_permissions",
-        joinColumns = @JoinColumn(name = "role_id"),
-        inverseJoinColumns = @JoinColumn(name = "permission_id"),
-        indexes = {
-            @Index(name = "idx_role_permissions_role_id", columnList = "role_id"),
-            @Index(name = "idx_role_permissions_permission_id", columnList = "permission_id")
-        }
-    )
+    @DocumentReference(lazy = true)
+    @Field("permissions")
     private Set<Permission> permissions = new HashSet<>();
 
     // Constructors

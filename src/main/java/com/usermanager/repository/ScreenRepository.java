@@ -4,17 +4,15 @@ import com.usermanager.domain.entity.Screen;
 import com.usermanager.domain.enums.ScreenType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
+import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.data.mongodb.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
 @Repository
-public interface ScreenRepository extends JpaRepository<Screen, UUID> {
+public interface ScreenRepository extends MongoRepository<Screen, String> {
 
     Optional<Screen> findByCode(String code);
 
@@ -38,50 +36,50 @@ public interface ScreenRepository extends JpaRepository<Screen, UUID> {
 
     Page<Screen> findByAuthRequired(Boolean authRequired, Pageable pageable);
 
-    @Query("SELECT s FROM Screen s WHERE s.active = true")
+    @Query("{'active': true}")
     List<Screen> findAllActiveScreens();
 
-    @Query("SELECT s FROM Screen s WHERE s.active = true")
+    @Query("{'active': true}")
     Page<Screen> findAllActiveScreens(Pageable pageable);
 
-    @Query("SELECT s FROM Screen s WHERE s.type = :type AND s.active = true")
-    Page<Screen> findByTypeAndActive(@Param("type") ScreenType type, Pageable pageable);
+    @Query("{'type': ?0, 'active': true}")
+    Page<Screen> findByTypeAndActive(ScreenType type, Pageable pageable);
 
-    @Query("SELECT s FROM Screen s WHERE s.module = :module AND s.active = true")
-    Page<Screen> findByModuleAndActive(@Param("module") String module, Pageable pageable);
+    @Query("{'module': ?0, 'active': true}")
+    Page<Screen> findByModuleAndActive(String module, Pageable pageable);
 
-    @Query("SELECT s FROM Screen s WHERE " +
-           "(LOWER(s.name) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
-           "LOWER(s.code) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
-           "LOWER(s.description) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
-           "LOWER(s.module) LIKE LOWER(CONCAT('%', :searchTerm, '%'))) AND " +
-           "s.active = true")
-    Page<Screen> searchActiveScreens(@Param("searchTerm") String searchTerm, Pageable pageable);
+    @Query("{'$and': [" +
+           "{'$or': [" +
+           "{'name': {'$regex': ?0, '$options': 'i'}}, " +
+           "{'code': {'$regex': ?0, '$options': 'i'}}, " +
+           "{'description': {'$regex': ?0, '$options': 'i'}}, " +
+           "{'module': {'$regex': ?0, '$options': 'i'}}" +
+           "]}, " +
+           "{'active': true}" +
+           "]}")
+    Page<Screen> searchActiveScreens(String searchTerm, Pageable pageable);
 
-    @Query("SELECT s FROM Screen s WHERE s.publicAccess = :publicAccess AND s.active = true")
-    Page<Screen> findByPublicAccessAndActive(@Param("publicAccess") Boolean publicAccess, Pageable pageable);
+    @Query("{'publicAccess': ?0, 'active': true}")
+    Page<Screen> findByPublicAccessAndActive(Boolean publicAccess, Pageable pageable);
 
-    @Query("SELECT s FROM Screen s WHERE s.authRequired = :authRequired AND s.active = true")
-    Page<Screen> findByAuthRequiredAndActive(@Param("authRequired") Boolean authRequired, Pageable pageable);
+    @Query("{'authRequired': ?0, 'active': true}")
+    Page<Screen> findByAuthRequiredAndActive(Boolean authRequired, Pageable pageable);
 
-    @Query("SELECT COUNT(s) FROM Screen s WHERE s.type = :type AND s.active = true")
-    long countByTypeAndActive(@Param("type") ScreenType type);
+    @Query(value = "{'type': ?0, 'active': true}", count = true)
+    long countByTypeAndActive(ScreenType type);
 
-    @Query("SELECT COUNT(s) FROM Screen s WHERE s.module = :module AND s.active = true")
-    long countByModuleAndActive(@Param("module") String module);
+    @Query(value = "{'module': ?0, 'active': true}", count = true)
+    long countByModuleAndActive(String module);
 
-    @Query("SELECT s.module, COUNT(s) FROM Screen s WHERE s.active = true GROUP BY s.module")
-    List<Object[]> countScreensByModule();
-
-    @Query("SELECT DISTINCT s.module FROM Screen s WHERE s.active = true ORDER BY s.module")
+    @Query(value = "{'active': true}", fields = "{'module': 1, '_id': 0}")
     List<String> findDistinctModules();
 
-    @Query("SELECT s FROM Screen s WHERE s.cacheEnabled = true AND s.active = true")
+    @Query("{'cacheEnabled': true, 'active': true}")
     List<Screen> findCacheEnabledScreens();
 
-    @Query("SELECT s FROM Screen s WHERE SIZE(s.requiredPermissions) = 0 AND s.active = true")
+    @Query("{'requiredPermissions': {'$size': 0}, 'active': true}")
     List<Screen> findScreensWithoutPermissions();
 
-    @Query("SELECT s FROM Screen s WHERE :permissionCode MEMBER OF s.requiredPermissions AND s.active = true")
-    List<Screen> findByRequiredPermissionAndActive(@Param("permissionCode") String permissionCode);
+    @Query("{'requiredPermissions': ?0, 'active': true}")
+    List<Screen> findByRequiredPermissionAndActive(String permissionCode);
 }

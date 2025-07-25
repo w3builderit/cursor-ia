@@ -1,6 +1,6 @@
 # User Manager Microservice
 
-A comprehensive user management microservice built with **Java 21**, **Spring Boot 3.2.8**, **Keycloak**, and **PostgreSQL**. This service provides role-based access control (RBAC) for managing users, roles, permissions, menus, screens, papers/documents, and user profiles.
+A comprehensive user management microservice built with **Java 21**, **Spring Boot 3.2.8**, **Keycloak**, and **MongoDB**. This service provides role-based access control (RBAC) for managing users, roles, permissions, menus, screens, papers/documents, and user profiles.
 
 ## 🚀 Features
 
@@ -34,10 +34,9 @@ A comprehensive user management microservice built with **Java 21**, **Spring Bo
 - **Java 21** - Latest LTS version with modern language features
 - **Spring Boot 3.2.8** - Enterprise application framework
 - **Spring Security** - Authentication and authorization
-- **Spring Data JPA** - Data access layer with Hibernate
-- **PostgreSQL** - Relational database
+- **Spring Data MongoDB** - Data access layer for MongoDB
+- **MongoDB** - NoSQL document database
 - **Keycloak** - Identity and access management
-- **Flyway** - Database migration
 - **MapStruct** - Object mapping
 - **Docker & Docker Compose** - Containerization
 

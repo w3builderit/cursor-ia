@@ -8,14 +8,13 @@ import org.springframework.data.domain.Pageable;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
 public interface UserService {
 
     // CRUD operations
     UserDto createUser(UserDto userDto);
     
-    Optional<UserDto> getUserById(UUID id);
+    Optional<UserDto> getUserById(String id);
     
     Optional<UserDto> getUserByUsername(String username);
     
@@ -23,15 +22,15 @@ public interface UserService {
     
     Optional<UserDto> getUserByKeycloakId(String keycloakId);
     
-    UserDto updateUser(UUID id, UserDto userDto);
+    UserDto updateUser(String id, UserDto userDto);
     
-    void deleteUser(UUID id);
+    void deleteUser(String id);
     
-    void softDeleteUser(UUID id);
+    void softDeleteUser(String id);
     
-    void activateUser(UUID id);
+    void activateUser(String id);
     
-    void deactivateUser(UUID id);
+    void deactivateUser(String id);
 
     // Search and listing
     Page<UserDto> getAllUsers(Pageable pageable);
@@ -49,26 +48,26 @@ public interface UserService {
     List<UserDto> getUsersByRole(String roleCode);
 
     // User status management
-    void lockUser(UUID id, LocalDateTime until);
+    void lockUser(String id, LocalDateTime until);
     
-    void unlockUser(UUID id);
+    void unlockUser(String id);
     
-    void incrementLoginAttempts(UUID id);
+    void incrementLoginAttempts(String id);
     
-    void resetLoginAttempts(UUID id);
+    void resetLoginAttempts(String id);
     
-    void updateLastLogin(UUID id);
+    void updateLastLogin(String id);
     
-    void verifyEmail(UUID id);
+    void verifyEmail(String id);
 
     // Role management
-    void assignRole(UUID userId, UUID roleId);
+    void assignRole(String userId, String roleId);
     
-    void assignRoles(UUID userId, List<UUID> roleIds);
+    void assignRoles(String userId, List<String> roleIds);
     
-    void removeRole(UUID userId, UUID roleId);
+    void removeRole(String userId, String roleId);
     
-    void removeAllRoles(UUID userId);
+    void removeAllRoles(String userId);
 
     // Validation methods
     boolean existsByUsername(String username);

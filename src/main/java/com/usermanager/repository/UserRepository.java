@@ -4,18 +4,16 @@ import com.usermanager.domain.entity.User;
 import com.usermanager.domain.enums.UserStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
+import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.data.mongodb.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
 @Repository
-public interface UserRepository extends JpaRepository<User, UUID> {
+public interface UserRepository extends MongoRepository<User, String> {
 
     Optional<User> findByUsername(String username);
 
@@ -33,57 +31,56 @@ public interface UserRepository extends JpaRepository<User, UUID> {
 
     Page<User> findByStatus(UserStatus status, Pageable pageable);
 
-    @Query("SELECT u FROM User u WHERE u.active = true")
+    @Query("{'active': true}")
     List<User> findAllActiveUsers();
 
-    @Query("SELECT u FROM User u WHERE u.active = true")
+    @Query("{'active': true}")
     Page<User> findAllActiveUsers(Pageable pageable);
 
-    @Query("SELECT u FROM User u WHERE u.status = :status AND u.active = true")
-    Page<User> findByStatusAndActive(@Param("status") UserStatus status, Pageable pageable);
+    @Query("{'status': ?0, 'active': true}")
+    Page<User> findByStatusAndActive(UserStatus status, Pageable pageable);
 
-    @Query("SELECT u FROM User u WHERE " +
-           "(LOWER(u.firstName) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
-           "LOWER(u.lastName) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
-           "LOWER(u.username) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
-           "LOWER(u.email) LIKE LOWER(CONCAT('%', :searchTerm, '%'))) AND " +
-           "u.active = true")
-    Page<User> searchActiveUsers(@Param("searchTerm") String searchTerm, Pageable pageable);
+    @Query("{'$and': [" +
+           "{'$or': [" +
+           "{'firstName': {'$regex': ?0, '$options': 'i'}}, " +
+           "{'lastName': {'$regex': ?0, '$options': 'i'}}, " +
+           "{'username': {'$regex': ?0, '$options': 'i'}}, " +
+           "{'email': {'$regex': ?0, '$options': 'i'}}" +
+           "]}, " +
+           "{'active': true}" +
+           "]}")
+    Page<User> searchActiveUsers(String searchTerm, Pageable pageable);
 
-    @Query("SELECT u FROM User u WHERE u.department = :department AND u.active = true")
-    List<User> findByDepartmentAndActive(@Param("department") String department);
+    @Query("{'department': ?0, 'active': true}")
+    List<User> findByDepartmentAndActive(String department);
 
-    @Query("SELECT u FROM User u WHERE u.position = :position AND u.active = true")
-    List<User> findByPositionAndActive(@Param("position") String position);
+    @Query("{'position': ?0, 'active': true}")
+    List<User> findByPositionAndActive(String position);
 
-    @Query("SELECT u FROM User u WHERE u.lastLoginAt < :date")
-    List<User> findUsersNotLoggedInSince(@Param("date") LocalDateTime date);
+    @Query("{'lastLoginAt': {'$lt': ?0}}")
+    List<User> findUsersNotLoggedInSince(LocalDateTime date);
 
-    @Query("SELECT u FROM User u WHERE u.emailVerified = false AND u.createdAt < :date")
-    List<User> findUnverifiedUsersCreatedBefore(@Param("date") LocalDateTime date);
+    @Query("{'emailVerified': false, 'createdAt': {'$lt': ?0}}")
+    List<User> findUnverifiedUsersCreatedBefore(LocalDateTime date);
 
-    @Query("SELECT u FROM User u WHERE u.lockedUntil IS NOT NULL AND u.lockedUntil > CURRENT_TIMESTAMP")
+    @Query("{'$and': [{'lockedUntil': {'$ne': null}}, {'lockedUntil': {'$gt': ?#{new java.util.Date()}}}]}")
     List<User> findLockedUsers();
 
-    @Query("SELECT u FROM User u WHERE u.loginAttempts >= :maxAttempts")
-    List<User> findUsersWithExcessiveLoginAttempts(@Param("maxAttempts") Integer maxAttempts);
+    @Query("{'loginAttempts': {'$gte': ?0}}")
+    List<User> findUsersWithExcessiveLoginAttempts(Integer maxAttempts);
 
-    @Query("SELECT u FROM User u JOIN u.roles r WHERE r.code = :roleCode AND u.active = true")
-    List<User> findByRoleCodeAndActive(@Param("roleCode") String roleCode);
+    @Query("{'roles.code': ?0, 'active': true}")
+    List<User> findByRoleCodeAndActive(String roleCode);
 
-    @Query("SELECT u FROM User u JOIN u.roles r WHERE r.id = :roleId AND u.active = true")
-    Page<User> findByRoleIdAndActive(@Param("roleId") UUID roleId, Pageable pageable);
+    @Query("{'roles.$id': ?0, 'active': true}")
+    Page<User> findByRoleIdAndActive(String roleId, Pageable pageable);
 
-    @Query("SELECT COUNT(u) FROM User u WHERE u.status = :status AND u.active = true")
-    long countByStatusAndActive(@Param("status") UserStatus status);
+    @Query(value = "{'status': ?0, 'active': true}", count = true)
+    long countByStatusAndActive(UserStatus status);
 
-    @Query("SELECT COUNT(u) FROM User u WHERE u.createdAt >= :startDate AND u.createdAt <= :endDate")
-    long countUsersCreatedBetween(@Param("startDate") LocalDateTime startDate, 
-                                  @Param("endDate") LocalDateTime endDate);
+    @Query(value = "{'createdAt': {'$gte': ?0, '$lte': ?1}}", count = true)
+    long countUsersCreatedBetween(LocalDateTime startDate, LocalDateTime endDate);
 
-    @Query("SELECT u.department, COUNT(u) FROM User u WHERE u.active = true GROUP BY u.department")
-    List<Object[]> countUsersByDepartment();
-
-    @Query("SELECT u FROM User u WHERE u.active = true ORDER BY u.lastLoginAt DESC")
+    @Query("{'active': true}")
     Page<User> findRecentlyActiveUsers(Pageable pageable);
 }

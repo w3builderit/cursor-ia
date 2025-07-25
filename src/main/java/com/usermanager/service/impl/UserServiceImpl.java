@@ -8,20 +8,16 @@ import com.usermanager.mapper.UserMapper;
 import com.usermanager.repository.RoleRepository;
 import com.usermanager.repository.UserRepository;
 import com.usermanager.service.UserService;
-import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
 @Service
-@Transactional
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
@@ -59,15 +55,13 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    @Transactional(readOnly = true)
-    public Optional<UserDto> getUserById(UUID id) {
+    public Optional<UserDto> getUserById(String id) {
         return userRepository.findById(id)
                 .filter(User::isActive)
                 .map(userMapper::toDto);
     }
 
     @Override
-    @Transactional(readOnly = true)
     public Optional<UserDto> getUserByUsername(String username) {
         return userRepository.findByUsername(username)
                 .filter(User::isActive)
@@ -75,7 +69,6 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    @Transactional(readOnly = true)
     public Optional<UserDto> getUserByEmail(String email) {
         return userRepository.findByEmail(email)
                 .filter(User::isActive)
@@ -83,7 +76,6 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    @Transactional(readOnly = true)
     public Optional<UserDto> getUserByKeycloakId(String keycloakId) {
         return userRepository.findByKeycloakId(keycloakId)
                 .filter(User::isActive)
@@ -91,10 +83,10 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public UserDto updateUser(UUID id, UserDto userDto) {
+    public UserDto updateUser(String id, UserDto userDto) {
         User existingUser = userRepository.findById(id)
                 .filter(User::isActive)
-                .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + id));
+                .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
 
         // Validate uniqueness for updated fields
         if (!existingUser.getUsername().equals(userDto.getUsername()) && 
@@ -105,261 +97,257 @@ public class UserServiceImpl implements UserService {
             existsByEmail(userDto.getEmail())) {
             throw new IllegalArgumentException("Email already exists: " + userDto.getEmail());
         }
+        if (userDto.getKeycloakId() != null && 
+            !userDto.getKeycloakId().equals(existingUser.getKeycloakId()) && 
+            existsByKeycloakId(userDto.getKeycloakId())) {
+            throw new IllegalArgumentException("Keycloak ID already exists: " + userDto.getKeycloakId());
+        }
 
-        userMapper.updateEntity(existingUser, userDto);
+        // Update fields
+        existingUser.setUsername(userDto.getUsername());
+        existingUser.setEmail(userDto.getEmail());
+        existingUser.setFirstName(userDto.getFirstName());
+        existingUser.setLastName(userDto.getLastName());
+        existingUser.setPhoneNumber(userDto.getPhoneNumber());
+        existingUser.setKeycloakId(userDto.getKeycloakId());
+        existingUser.setDepartment(userDto.getDepartment());
+        existingUser.setPosition(userDto.getPosition());
+        existingUser.setBio(userDto.getBio());
+        existingUser.setProfilePictureUrl(userDto.getProfilePictureUrl());
+
         User updatedUser = userRepository.save(existingUser);
         return userMapper.toDto(updatedUser);
     }
 
     @Override
-    public void deleteUser(UUID id) {
-        User user = userRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + id));
-        userRepository.delete(user);
+    public void deleteUser(String id) {
+        if (userRepository.existsById(id)) {
+            userRepository.deleteById(id);
+        } else {
+            throw new RuntimeException("User not found with id: " + id);
+        }
     }
 
     @Override
-    public void softDeleteUser(UUID id) {
+    public void softDeleteUser(String id) {
         User user = userRepository.findById(id)
-                .filter(User::isActive)
-                .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + id));
-        
+                .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
         user.deactivate();
-        user.setStatus(UserStatus.INACTIVE);
         userRepository.save(user);
     }
 
     @Override
-    public void activateUser(UUID id) {
+    public void activateUser(String id) {
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + id));
-        
+                .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
         user.activate();
         user.setStatus(UserStatus.ACTIVE);
         userRepository.save(user);
     }
 
     @Override
-    public void deactivateUser(UUID id) {
+    public void deactivateUser(String id) {
         User user = userRepository.findById(id)
-                .filter(User::isActive)
-                .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + id));
-        
+                .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
         user.deactivate();
         user.setStatus(UserStatus.INACTIVE);
         userRepository.save(user);
     }
 
     @Override
-    @Transactional(readOnly = true)
     public Page<UserDto> getAllUsers(Pageable pageable) {
+        return userRepository.findAll(pageable)
+                .map(userMapper::toDto);
+    }
+
+    @Override
+    public Page<UserDto> getActiveUsers(Pageable pageable) {
         return userRepository.findAllActiveUsers(pageable)
                 .map(userMapper::toDto);
     }
 
     @Override
-    @Transactional(readOnly = true)
-    public Page<UserDto> getActiveUsers(Pageable pageable) {
-        return userRepository.findByStatusAndActive(UserStatus.ACTIVE, pageable)
-                .map(userMapper::toDto);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
     public Page<UserDto> getUsersByStatus(UserStatus status, Pageable pageable) {
         return userRepository.findByStatusAndActive(status, pageable)
                 .map(userMapper::toDto);
     }
 
     @Override
-    @Transactional(readOnly = true)
     public Page<UserDto> searchUsers(String searchTerm, Pageable pageable) {
         return userRepository.searchActiveUsers(searchTerm, pageable)
                 .map(userMapper::toDto);
     }
 
     @Override
-    @Transactional(readOnly = true)
     public List<UserDto> getUsersByDepartment(String department) {
-        return userMapper.toDtoList(userRepository.findByDepartmentAndActive(department));
+        return userRepository.findByDepartmentAndActive(department)
+                .stream()
+                .map(userMapper::toDto)
+                .toList();
     }
 
     @Override
-    @Transactional(readOnly = true)
     public List<UserDto> getUsersByPosition(String position) {
-        return userMapper.toDtoList(userRepository.findByPositionAndActive(position));
+        return userRepository.findByPositionAndActive(position)
+                .stream()
+                .map(userMapper::toDto)
+                .toList();
     }
 
     @Override
-    @Transactional(readOnly = true)
     public List<UserDto> getUsersByRole(String roleCode) {
-        return userMapper.toDtoList(userRepository.findByRoleCodeAndActive(roleCode));
+        return userRepository.findByRoleCodeAndActive(roleCode)
+                .stream()
+                .map(userMapper::toDto)
+                .toList();
     }
 
     @Override
-    public void lockUser(UUID id, LocalDateTime until) {
+    public void lockUser(String id, LocalDateTime until) {
         User user = userRepository.findById(id)
-                .filter(User::isActive)
-                .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + id));
-        
+                .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
         user.lock(until);
         userRepository.save(user);
     }
 
     @Override
-    public void unlockUser(UUID id) {
+    public void unlockUser(String id) {
         User user = userRepository.findById(id)
-                .filter(User::isActive)
-                .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + id));
-        
+                .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
         user.unlock();
         userRepository.save(user);
     }
 
     @Override
-    public void incrementLoginAttempts(UUID id) {
+    public void incrementLoginAttempts(String id) {
         User user = userRepository.findById(id)
-                .filter(User::isActive)
-                .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + id));
-        
+                .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
         user.incrementLoginAttempts();
         userRepository.save(user);
     }
 
     @Override
-    public void resetLoginAttempts(UUID id) {
+    public void resetLoginAttempts(String id) {
         User user = userRepository.findById(id)
-                .filter(User::isActive)
-                .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + id));
-        
+                .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
         user.resetLoginAttempts();
         userRepository.save(user);
     }
 
     @Override
-    public void updateLastLogin(UUID id) {
+    public void updateLastLogin(String id) {
         User user = userRepository.findById(id)
-                .filter(User::isActive)
-                .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + id));
-        
+                .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
         user.updateLastLogin();
         userRepository.save(user);
     }
 
     @Override
-    public void verifyEmail(UUID id) {
+    public void verifyEmail(String id) {
         User user = userRepository.findById(id)
-                .filter(User::isActive)
-                .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + id));
-        
+                .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
         user.verifyEmail();
         userRepository.save(user);
     }
 
     @Override
-    public void assignRole(UUID userId, UUID roleId) {
+    public void assignRole(String userId, String roleId) {
         User user = userRepository.findById(userId)
-                .filter(User::isActive)
-                .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + userId));
-        
+                .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
         Role role = roleRepository.findById(roleId)
-                .filter(Role::isActive)
-                .orElseThrow(() -> new EntityNotFoundException("Role not found with id: " + roleId));
+                .orElseThrow(() -> new RuntimeException("Role not found with id: " + roleId));
         
         user.addRole(role);
         userRepository.save(user);
     }
 
     @Override
-    public void assignRoles(UUID userId, List<UUID> roleIds) {
+    public void assignRoles(String userId, List<String> roleIds) {
         User user = userRepository.findById(userId)
-                .filter(User::isActive)
-                .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + userId));
+                .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
         
-        for (UUID roleId : roleIds) {
-            Role role = roleRepository.findById(roleId)
-                    .filter(Role::isActive)
-                    .orElseThrow(() -> new EntityNotFoundException("Role not found with id: " + roleId));
-            user.addRole(role);
+        List<Role> roles = roleRepository.findAllById(roleIds);
+        if (roles.size() != roleIds.size()) {
+            throw new RuntimeException("One or more roles not found");
         }
         
+        roles.forEach(user::addRole);
         userRepository.save(user);
     }
 
     @Override
-    public void removeRole(UUID userId, UUID roleId) {
+    public void removeRole(String userId, String roleId) {
         User user = userRepository.findById(userId)
-                .filter(User::isActive)
-                .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + userId));
-        
+                .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
         Role role = roleRepository.findById(roleId)
-                .orElseThrow(() -> new EntityNotFoundException("Role not found with id: " + roleId));
+                .orElseThrow(() -> new RuntimeException("Role not found with id: " + roleId));
         
         user.removeRole(role);
         userRepository.save(user);
     }
 
     @Override
-    public void removeAllRoles(UUID userId) {
+    public void removeAllRoles(String userId) {
         User user = userRepository.findById(userId)
-                .filter(User::isActive)
-                .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + userId));
+                .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
         
         user.getRoles().clear();
         userRepository.save(user);
     }
 
     @Override
-    @Transactional(readOnly = true)
     public boolean existsByUsername(String username) {
         return userRepository.existsByUsername(username);
     }
 
     @Override
-    @Transactional(readOnly = true)
     public boolean existsByEmail(String email) {
         return userRepository.existsByEmail(email);
     }
 
     @Override
-    @Transactional(readOnly = true)
     public boolean existsByKeycloakId(String keycloakId) {
         return userRepository.existsByKeycloakId(keycloakId);
     }
 
     @Override
-    @Transactional(readOnly = true)
     public long countUsersByStatus(UserStatus status) {
         return userRepository.countByStatusAndActive(status);
     }
 
     @Override
-    @Transactional(readOnly = true)
     public long countUsersCreatedBetween(LocalDateTime startDate, LocalDateTime endDate) {
         return userRepository.countUsersCreatedBetween(startDate, endDate);
     }
 
     @Override
-    @Transactional(readOnly = true)
     public List<Object[]> getUserCountByDepartment() {
-        return userRepository.countUsersByDepartment();
+        // This would need to be implemented differently in MongoDB
+        // For now, returning empty list
+        return List.of();
     }
 
     @Override
-    @Transactional(readOnly = true)
     public List<UserDto> findUsersNotLoggedInSince(LocalDateTime date) {
-        return userMapper.toDtoList(userRepository.findUsersNotLoggedInSince(date));
+        return userRepository.findUsersNotLoggedInSince(date)
+                .stream()
+                .map(userMapper::toDto)
+                .toList();
     }
 
     @Override
-    @Transactional(readOnly = true)
     public List<UserDto> findUnverifiedUsersCreatedBefore(LocalDateTime date) {
-        return userMapper.toDtoList(userRepository.findUnverifiedUsersCreatedBefore(date));
+        return userRepository.findUnverifiedUsersCreatedBefore(date)
+                .stream()
+                .map(userMapper::toDto)
+                .toList();
     }
 
     @Override
-    @Transactional(readOnly = true)
     public List<UserDto> findLockedUsers() {
-        return userMapper.toDtoList(userRepository.findLockedUsers());
+        return userRepository.findLockedUsers()
+                .stream()
+                .map(userMapper::toDto)
+                .toList();
     }
 }

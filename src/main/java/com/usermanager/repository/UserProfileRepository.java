@@ -5,25 +5,25 @@ import com.usermanager.domain.entity.UserProfile;
 import com.usermanager.domain.enums.ProfileType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
+import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.data.mongodb.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
 @Repository
-public interface UserProfileRepository extends JpaRepository<UserProfile, UUID> {
+public interface UserProfileRepository extends MongoRepository<UserProfile, String> {
 
     List<UserProfile> findByUser(User user);
 
     Page<UserProfile> findByUser(User user, Pageable pageable);
 
-    List<UserProfile> findByUserId(UUID userId);
+    @Query("{'user.$id': ?0}")
+    List<UserProfile> findByUserId(String userId);
 
-    Page<UserProfile> findByUserId(UUID userId, Pageable pageable);
+    @Query("{'user.$id': ?0}")
+    Page<UserProfile> findByUserId(String userId, Pageable pageable);
 
     List<UserProfile> findByType(ProfileType type);
 
@@ -43,60 +43,58 @@ public interface UserProfileRepository extends JpaRepository<UserProfile, UUID> 
 
     Optional<UserProfile> findByUserAndIsDefaultTrue(User user);
 
-    Optional<UserProfile> findByUserIdAndIsDefaultTrue(UUID userId);
+    @Query("{'user.$id': ?0, 'isDefault': true}")
+    Optional<UserProfile> findByUserIdAndIsDefaultTrue(String userId);
 
-    @Query("SELECT up FROM UserProfile up WHERE up.active = true")
+    @Query("{'active': true}")
     List<UserProfile> findAllActiveProfiles();
 
-    @Query("SELECT up FROM UserProfile up WHERE up.active = true")
+    @Query("{'active': true}")
     Page<UserProfile> findAllActiveProfiles(Pageable pageable);
 
-    @Query("SELECT up FROM UserProfile up WHERE up.user.id = :userId AND up.active = true")
-    Page<UserProfile> findByUserIdAndActive(@Param("userId") UUID userId, Pageable pageable);
+    @Query("{'user.$id': ?0, 'active': true}")
+    Page<UserProfile> findByUserIdAndActive(String userId, Pageable pageable);
 
-    @Query("SELECT up FROM UserProfile up WHERE up.type = :type AND up.active = true")
-    Page<UserProfile> findByTypeAndActive(@Param("type") ProfileType type, Pageable pageable);
+    @Query("{'type': ?0, 'active': true}")
+    Page<UserProfile> findByTypeAndActive(ProfileType type, Pageable pageable);
 
-    @Query("SELECT up FROM UserProfile up WHERE up.context = :context AND up.active = true")
-    Page<UserProfile> findByContextAndActive(@Param("context") String context, Pageable pageable);
+    @Query("{'context': ?0, 'active': true}")
+    Page<UserProfile> findByContextAndActive(String context, Pageable pageable);
 
-    @Query("SELECT up FROM UserProfile up WHERE " +
-           "(LOWER(up.name) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
-           "LOWER(up.description) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
-           "LOWER(up.context) LIKE LOWER(CONCAT('%', :searchTerm, '%'))) AND " +
-           "up.active = true")
-    Page<UserProfile> searchActiveProfiles(@Param("searchTerm") String searchTerm, Pageable pageable);
+    @Query("{'$and': [" +
+           "{'$or': [" +
+           "{'name': {'$regex': ?0, '$options': 'i'}}, " +
+           "{'description': {'$regex': ?0, '$options': 'i'}}, " +
+           "{'context': {'$regex': ?0, '$options': 'i'}}" +
+           "]}, " +
+           "{'active': true}" +
+           "]}")
+    Page<UserProfile> searchActiveProfiles(String searchTerm, Pageable pageable);
 
-    @Query("SELECT up FROM UserProfile up WHERE up.isPublic = :isPublic AND up.active = true")
-    Page<UserProfile> findByIsPublicAndActive(@Param("isPublic") Boolean isPublic, Pageable pageable);
+    @Query("{'isPublic': ?0, 'active': true}")
+    Page<UserProfile> findByIsPublicAndActive(Boolean isPublic, Pageable pageable);
 
-    @Query("SELECT up FROM UserProfile up WHERE up.isDefault = :isDefault AND up.active = true")
-    Page<UserProfile> findByIsDefaultAndActive(@Param("isDefault") Boolean isDefault, Pageable pageable);
+    @Query("{'isDefault': ?0, 'active': true}")
+    Page<UserProfile> findByIsDefaultAndActive(Boolean isDefault, Pageable pageable);
 
-    @Query("SELECT COUNT(up) FROM UserProfile up WHERE up.user.id = :userId AND up.active = true")
-    long countByUserIdAndActive(@Param("userId") UUID userId);
+    @Query(value = "{'user.$id': ?0, 'active': true}", count = true)
+    long countByUserIdAndActive(String userId);
 
-    @Query("SELECT COUNT(up) FROM UserProfile up WHERE up.type = :type AND up.active = true")
-    long countByTypeAndActive(@Param("type") ProfileType type);
+    @Query(value = "{'type': ?0, 'active': true}", count = true)
+    long countByTypeAndActive(ProfileType type);
 
-    @Query("SELECT up.type, COUNT(up) FROM UserProfile up WHERE up.active = true GROUP BY up.type")
-    List<Object[]> countProfilesByType();
-
-    @Query("SELECT up.context, COUNT(up) FROM UserProfile up WHERE up.context IS NOT NULL AND up.active = true GROUP BY up.context")
-    List<Object[]> countProfilesByContext();
-
-    @Query("SELECT DISTINCT up.context FROM UserProfile up WHERE up.context IS NOT NULL AND up.active = true ORDER BY up.context")
+    @Query(value = "{'context': {'$ne': null}, 'active': true}", fields = "{'context': 1, '_id': 0}")
     List<String> findDistinctContexts();
 
-    @Query("SELECT up FROM UserProfile up WHERE up.user.id = :userId AND up.type = :type AND up.active = true")
-    List<UserProfile> findByUserIdAndTypeAndActive(@Param("userId") UUID userId, @Param("type") ProfileType type);
+    @Query("{'user.$id': ?0, 'type': ?1, 'active': true}")
+    List<UserProfile> findByUserIdAndTypeAndActive(String userId, ProfileType type);
 
-    @Query("SELECT up FROM UserProfile up WHERE up.user.id = :userId AND up.context = :context AND up.active = true")
-    List<UserProfile> findByUserIdAndContextAndActive(@Param("userId") UUID userId, @Param("context") String context);
+    @Query("{'user.$id': ?0, 'context': ?1, 'active': true}")
+    List<UserProfile> findByUserIdAndContextAndActive(String userId, String context);
 
-    @Query("SELECT up FROM UserProfile up WHERE SIZE(up.permissions) = 0 AND up.active = true")
+    @Query("{'permissions': {'$size': 0}, 'active': true}")
     List<UserProfile> findProfilesWithoutPermissions();
 
-    @Query("SELECT up FROM UserProfile up WHERE :permissionCode MEMBER OF up.permissions AND up.active = true")
-    List<UserProfile> findByPermissionAndActive(@Param("permissionCode") String permissionCode);
+    @Query("{'permissions': ?0, 'active': true}")
+    List<UserProfile> findByPermissionAndActive(String permissionCode);
 }

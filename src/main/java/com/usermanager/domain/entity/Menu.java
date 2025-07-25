@@ -1,60 +1,61 @@
 package com.usermanager.domain.entity;
 
-import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.mapping.DocumentReference;
+import org.springframework.data.mongodb.core.mapping.Field;
+import org.springframework.data.mongodb.core.index.Indexed;
 
 import java.util.ArrayList;
 import java.util.List;
 
-@Entity
-@Table(name = "menus", indexes = {
-    @Index(name = "idx_menu_code", columnList = "code", unique = true),
-    @Index(name = "idx_menu_parent_id", columnList = "parent_id"),
-    @Index(name = "idx_menu_order", columnList = "display_order")
-})
+@Document(collection = "menus")
 public class Menu extends BaseEntity {
 
     @NotBlank
     @Size(max = 100)
-    @Column(name = "code", nullable = false, unique = true, length = 100)
+    @Field("code")
+    @Indexed(unique = true)
     private String code;
 
     @NotBlank
     @Size(max = 100)
-    @Column(name = "name", nullable = false, length = 100)
+    @Field("name")
     private String name;
 
     @Size(max = 500)
-    @Column(name = "description", length = 500)
+    @Field("description")
     private String description;
 
     @Size(max = 255)
-    @Column(name = "url", length = 255)
+    @Field("url")
     private String url;
 
     @Size(max = 100)
-    @Column(name = "icon", length = 100)
+    @Field("icon")
     private String icon;
 
-    @Column(name = "display_order", nullable = false)
+    @Field("display_order")
+    @Indexed
     private Integer displayOrder = 0;
 
-    @Column(name = "visible", nullable = false)
+    @Field("visible")
     private Boolean visible = true;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "parent_id")
+    @DocumentReference
+    @Field("parent_id")
+    @Indexed
     private Menu parent;
 
-    @OneToMany(mappedBy = "parent", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
-    @OrderBy("displayOrder ASC")
+    @DocumentReference(lazy = true)
+    @Field("children")
     private List<Menu> children = new ArrayList<>();
 
-    @Column(name = "required_permission", length = 100)
+    @Field("required_permission")
     private String requiredPermission;
 
-    @Column(name = "menu_level", nullable = false)
+    @Field("menu_level")
     private Integer level = 0;
 
     // Constructors

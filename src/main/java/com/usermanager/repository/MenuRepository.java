@@ -3,29 +3,31 @@ package com.usermanager.repository;
 import com.usermanager.domain.entity.Menu;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
+import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.data.mongodb.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
 @Repository
-public interface MenuRepository extends JpaRepository<Menu, UUID> {
+public interface MenuRepository extends MongoRepository<Menu, String> {
 
     Optional<Menu> findByCode(String code);
 
     boolean existsByCode(String code);
 
+    @Query("{'parent': null}")
     List<Menu> findByParentIsNull();
 
+    @Query(value = "{'parent': null}", sort = "{'displayOrder': 1}")
     List<Menu> findByParentIsNullOrderByDisplayOrder();
 
-    List<Menu> findByParentId(UUID parentId);
+    @Query("{'parent.$id': ?0}")
+    List<Menu> findByParentId(String parentId);
 
-    List<Menu> findByParentIdOrderByDisplayOrder(UUID parentId);
+    @Query(value = "{'parent.$id': ?0}", sort = "{'displayOrder': 1}")
+    List<Menu> findByParentIdOrderByDisplayOrder(String parentId);
 
     List<Menu> findByVisible(Boolean visible);
 
@@ -33,49 +35,52 @@ public interface MenuRepository extends JpaRepository<Menu, UUID> {
 
     List<Menu> findByLevel(Integer level);
 
-    @Query("SELECT m FROM Menu m WHERE m.active = true")
+    @Query("{'active': true}")
     List<Menu> findAllActiveMenus();
 
-    @Query("SELECT m FROM Menu m WHERE m.active = true")
+    @Query("{'active': true}")
     Page<Menu> findAllActiveMenus(Pageable pageable);
 
-    @Query("SELECT m FROM Menu m WHERE m.parent IS NULL AND m.active = true ORDER BY m.displayOrder")
+    @Query(value = "{'parent': null, 'active': true}", sort = "{'displayOrder': 1}")
     List<Menu> findRootMenusActive();
 
-    @Query("SELECT m FROM Menu m WHERE m.parent.id = :parentId AND m.active = true ORDER BY m.displayOrder")
-    List<Menu> findByParentIdAndActive(@Param("parentId") UUID parentId);
+    @Query(value = "{'parent.$id': ?0, 'active': true}", sort = "{'displayOrder': 1}")
+    List<Menu> findByParentIdAndActive(String parentId);
 
-    @Query("SELECT m FROM Menu m WHERE m.visible = :visible AND m.active = true")
-    Page<Menu> findByVisibleAndActive(@Param("visible") Boolean visible, Pageable pageable);
+    @Query("{'visible': ?0, 'active': true}")
+    Page<Menu> findByVisibleAndActive(Boolean visible, Pageable pageable);
 
-    @Query("SELECT m FROM Menu m WHERE " +
-           "(LOWER(m.name) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
-           "LOWER(m.code) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
-           "LOWER(m.description) LIKE LOWER(CONCAT('%', :searchTerm, '%'))) AND " +
-           "m.active = true")
-    Page<Menu> searchActiveMenus(@Param("searchTerm") String searchTerm, Pageable pageable);
+    @Query("{'$and': [" +
+           "{'$or': [" +
+           "{'name': {'$regex': ?0, '$options': 'i'}}, " +
+           "{'code': {'$regex': ?0, '$options': 'i'}}, " +
+           "{'description': {'$regex': ?0, '$options': 'i'}}" +
+           "]}, " +
+           "{'active': true}" +
+           "]}")
+    Page<Menu> searchActiveMenus(String searchTerm, Pageable pageable);
 
-    @Query("SELECT m FROM Menu m WHERE m.requiredPermission = :permissionCode AND m.active = true")
-    List<Menu> findByRequiredPermissionAndActive(@Param("permissionCode") String permissionCode);
+    @Query("{'requiredPermission': ?0, 'active': true}")
+    List<Menu> findByRequiredPermissionAndActive(String permissionCode);
 
-    @Query("SELECT m FROM Menu m WHERE m.level = :level AND m.active = true ORDER BY m.displayOrder")
-    List<Menu> findByLevelAndActive(@Param("level") Integer level);
+    @Query(value = "{'level': ?0, 'active': true}", sort = "{'displayOrder': 1}")
+    List<Menu> findByLevelAndActive(Integer level);
 
-    @Query("SELECT COUNT(m) FROM Menu m WHERE m.parent.id = :parentId AND m.active = true")
-    long countByParentIdAndActive(@Param("parentId") UUID parentId);
+    @Query(value = "{'parent.$id': ?0, 'active': true}", count = true)
+    long countByParentIdAndActive(String parentId);
 
-    @Query("SELECT m FROM Menu m WHERE m.parent IS NULL AND m.visible = true AND m.active = true ORDER BY m.displayOrder")
+    @Query(value = "{'parent': null, 'visible': true, 'active': true}", sort = "{'displayOrder': 1}")
     List<Menu> findVisibleRootMenus();
 
-    @Query("SELECT m FROM Menu m WHERE m.parent.id = :parentId AND m.visible = true AND m.active = true ORDER BY m.displayOrder")
-    List<Menu> findVisibleChildMenus(@Param("parentId") UUID parentId);
+    @Query(value = "{'parent.$id': ?0, 'visible': true, 'active': true}", sort = "{'displayOrder': 1}")
+    List<Menu> findVisibleChildMenus(String parentId);
 
-    @Query("SELECT m FROM Menu m WHERE m.url IS NOT NULL AND m.active = true")
+    @Query("{'url': {'$ne': null}, 'active': true}")
     List<Menu> findMenusWithUrl();
 
-    @Query("SELECT MAX(m.displayOrder) FROM Menu m WHERE m.parent.id = :parentId AND m.active = true")
-    Integer findMaxDisplayOrderByParentId(@Param("parentId") UUID parentId);
+    @Query("{'parent.$id': ?0, 'active': true}")
+    List<Menu> findByParentIdForMaxDisplayOrder(String parentId);
 
-    @Query("SELECT MAX(m.displayOrder) FROM Menu m WHERE m.parent IS NULL AND m.active = true")
-    Integer findMaxDisplayOrderForRootMenus();
+    @Query("{'parent': null, 'active': true}")
+    List<Menu> findRootMenusForMaxDisplayOrder();
 }

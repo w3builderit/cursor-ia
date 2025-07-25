@@ -22,7 +22,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.UUID;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/users")
@@ -61,7 +61,7 @@ public class UserController {
     @Operation(summary = "Get user by ID")
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'USER_MANAGER', 'USER_VIEWER') or @userService.getUserById(#id).orElse(null)?.username == authentication.name")
-    public ResponseEntity<UserDto> getUserById(@PathVariable UUID id) {
+    public ResponseEntity<UserDto> getUserById(@PathVariable String id) {
         return userService.getUserById(id)
                 .map(user -> ResponseEntity.ok(user))
                 .orElse(ResponseEntity.notFound().build());
@@ -78,7 +78,7 @@ public class UserController {
     @Operation(summary = "Update user")
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'USER_MANAGER') or @userService.getUserById(#id).orElse(null)?.username == authentication.name")
-    public ResponseEntity<UserDto> updateUser(@PathVariable UUID id, @Valid @RequestBody UserDto userDto) {
+    public ResponseEntity<UserDto> updateUser(@PathVariable String id, @Valid @RequestBody UserDto userDto) {
         try {
             UserDto updatedUser = userService.updateUser(id, userDto);
             return ResponseEntity.ok(updatedUser);
@@ -101,7 +101,19 @@ public class UserController {
     @Operation(summary = "Delete user")
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Void> deleteUser(@PathVariable UUID id) {
+    public ResponseEntity<Void> deleteUser(@PathVariable String id) {
+        try {
+            userService.deleteUser(id);
+            return ResponseEntity.noContent().build();
+        } catch (Exception e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @Operation(summary = "Soft delete user (deactivate)")
+    @DeleteMapping("/{id}/soft")
+    @PreAuthorize("hasAnyRole('ADMIN', 'USER_MANAGER')")
+    public ResponseEntity<Void> softDeleteUser(@PathVariable String id) {
         try {
             userService.softDeleteUser(id);
             return ResponseEntity.noContent().build();
@@ -113,7 +125,7 @@ public class UserController {
     @Operation(summary = "Activate user")
     @PostMapping("/{id}/activate")
     @PreAuthorize("hasAnyRole('ADMIN', 'USER_MANAGER')")
-    public ResponseEntity<Void> activateUser(@PathVariable UUID id) {
+    public ResponseEntity<Void> activateUser(@PathVariable String id) {
         try {
             userService.activateUser(id);
             return ResponseEntity.ok().build();
@@ -125,7 +137,7 @@ public class UserController {
     @Operation(summary = "Deactivate user")
     @PostMapping("/{id}/deactivate")
     @PreAuthorize("hasAnyRole('ADMIN', 'USER_MANAGER')")
-    public ResponseEntity<Void> deactivateUser(@PathVariable UUID id) {
+    public ResponseEntity<Void> deactivateUser(@PathVariable String id) {
         try {
             userService.deactivateUser(id);
             return ResponseEntity.ok().build();
@@ -134,13 +146,12 @@ public class UserController {
         }
     }
 
-    @Operation(summary = "Search users")
-    @GetMapping("/search")
+    @Operation(summary = "Get active users")
+    @GetMapping("/active")
     @PreAuthorize("hasAnyRole('ADMIN', 'USER_MANAGER', 'USER_VIEWER')")
-    public ResponseEntity<Page<UserDto>> searchUsers(
-            @Parameter(description = "Search term") @RequestParam String q,
-            @PageableDefault(size = 20) Pageable pageable) {
-        Page<UserDto> users = userService.searchUsers(q, pageable);
+    public ResponseEntity<Page<UserDto>> getActiveUsers(
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        Page<UserDto> users = userService.getActiveUsers(pageable);
         return ResponseEntity.ok(users);
     }
 
@@ -149,8 +160,18 @@ public class UserController {
     @PreAuthorize("hasAnyRole('ADMIN', 'USER_MANAGER', 'USER_VIEWER')")
     public ResponseEntity<Page<UserDto>> getUsersByStatus(
             @PathVariable UserStatus status,
-            @PageableDefault(size = 20) Pageable pageable) {
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         Page<UserDto> users = userService.getUsersByStatus(status, pageable);
+        return ResponseEntity.ok(users);
+    }
+
+    @Operation(summary = "Search users")
+    @GetMapping("/search")
+    @PreAuthorize("hasAnyRole('ADMIN', 'USER_MANAGER', 'USER_VIEWER')")
+    public ResponseEntity<Page<UserDto>> searchUsers(
+            @RequestParam String searchTerm,
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        Page<UserDto> users = userService.searchUsers(searchTerm, pageable);
         return ResponseEntity.ok(users);
     }
 
@@ -178,25 +199,22 @@ public class UserController {
         return ResponseEntity.ok(users);
     }
 
-    @Operation(summary = "Lock user")
+    @Operation(summary = "Lock user account")
     @PostMapping("/{id}/lock")
     @PreAuthorize("hasAnyRole('ADMIN', 'USER_MANAGER')")
-    public ResponseEntity<Void> lockUser(
-            @PathVariable UUID id,
-            @RequestParam(required = false) LocalDateTime until) {
+    public ResponseEntity<Void> lockUser(@PathVariable String id, @RequestParam LocalDateTime until) {
         try {
-            LocalDateTime lockUntil = until != null ? until : LocalDateTime.now().plusHours(24);
-            userService.lockUser(id, lockUntil);
+            userService.lockUser(id, until);
             return ResponseEntity.ok().build();
         } catch (Exception e) {
             return ResponseEntity.notFound().build();
         }
     }
 
-    @Operation(summary = "Unlock user")
+    @Operation(summary = "Unlock user account")
     @PostMapping("/{id}/unlock")
     @PreAuthorize("hasAnyRole('ADMIN', 'USER_MANAGER')")
-    public ResponseEntity<Void> unlockUser(@PathVariable UUID id) {
+    public ResponseEntity<Void> unlockUser(@PathVariable String id) {
         try {
             userService.unlockUser(id);
             return ResponseEntity.ok().build();
@@ -207,8 +225,8 @@ public class UserController {
 
     @Operation(summary = "Verify user email")
     @PostMapping("/{id}/verify-email")
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER_MANAGER')")
-    public ResponseEntity<Void> verifyEmail(@PathVariable UUID id) {
+    @PreAuthorize("hasAnyRole('ADMIN', 'USER_MANAGER') or @userService.getUserById(#id).orElse(null)?.username == authentication.name")
+    public ResponseEntity<Void> verifyEmail(@PathVariable String id) {
         try {
             userService.verifyEmail(id);
             return ResponseEntity.ok().build();
@@ -219,8 +237,8 @@ public class UserController {
 
     @Operation(summary = "Assign role to user")
     @PostMapping("/{userId}/roles/{roleId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'ROLE_MANAGER')")
-    public ResponseEntity<Void> assignRole(@PathVariable UUID userId, @PathVariable UUID roleId) {
+    @PreAuthorize("hasAnyRole('ADMIN', 'USER_MANAGER')")
+    public ResponseEntity<Void> assignRole(@PathVariable String userId, @PathVariable String roleId) {
         try {
             userService.assignRole(userId, roleId);
             return ResponseEntity.ok().build();
@@ -231,8 +249,8 @@ public class UserController {
 
     @Operation(summary = "Assign multiple roles to user")
     @PostMapping("/{userId}/roles")
-    @PreAuthorize("hasAnyRole('ADMIN', 'ROLE_MANAGER')")
-    public ResponseEntity<Void> assignRoles(@PathVariable UUID userId, @RequestBody List<UUID> roleIds) {
+    @PreAuthorize("hasAnyRole('ADMIN', 'USER_MANAGER')")
+    public ResponseEntity<Void> assignRoles(@PathVariable String userId, @RequestBody List<String> roleIds) {
         try {
             userService.assignRoles(userId, roleIds);
             return ResponseEntity.ok().build();
@@ -243,8 +261,8 @@ public class UserController {
 
     @Operation(summary = "Remove role from user")
     @DeleteMapping("/{userId}/roles/{roleId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'ROLE_MANAGER')")
-    public ResponseEntity<Void> removeRole(@PathVariable UUID userId, @PathVariable UUID roleId) {
+    @PreAuthorize("hasAnyRole('ADMIN', 'USER_MANAGER')")
+    public ResponseEntity<Void> removeRole(@PathVariable String userId, @PathVariable String roleId) {
         try {
             userService.removeRole(userId, roleId);
             return ResponseEntity.ok().build();
@@ -256,7 +274,7 @@ public class UserController {
     @Operation(summary = "Remove all roles from user")
     @DeleteMapping("/{userId}/roles")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Void> removeAllRoles(@PathVariable UUID userId) {
+    public ResponseEntity<Void> removeAllRoles(@PathVariable String userId) {
         try {
             userService.removeAllRoles(userId);
             return ResponseEntity.ok().build();
@@ -265,45 +283,54 @@ public class UserController {
         }
     }
 
-    @Operation(summary = "Get user count by status")
-    @GetMapping("/stats/count-by-status")
+    @Operation(summary = "Get user statistics")
+    @GetMapping("/statistics")
     @PreAuthorize("hasAnyRole('ADMIN', 'USER_MANAGER')")
-    public ResponseEntity<Long> countUsersByStatus(@RequestParam UserStatus status) {
-        long count = userService.countUsersByStatus(status);
-        return ResponseEntity.ok(count);
+    public ResponseEntity<Object> getUserStatistics() {
+        return ResponseEntity.ok(Map.of(
+            "activeUsers", userService.countUsersByStatus(UserStatus.ACTIVE),
+            "inactiveUsers", userService.countUsersByStatus(UserStatus.INACTIVE),
+            "lockedUsers", userService.countUsersByStatus(UserStatus.LOCKED)
+        ));
     }
 
-    @Operation(summary = "Get user count by department")
-    @GetMapping("/stats/count-by-department")
+    @Operation(summary = "Get users not logged in since date")
+    @GetMapping("/inactive-since")
     @PreAuthorize("hasAnyRole('ADMIN', 'USER_MANAGER')")
-    public ResponseEntity<List<Object[]>> getUserCountByDepartment() {
-        List<Object[]> stats = userService.getUserCountByDepartment();
-        return ResponseEntity.ok(stats);
-    }
-
-    @Operation(summary = "Get inactive users")
-    @GetMapping("/maintenance/inactive")
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER_MANAGER')")
-    public ResponseEntity<List<UserDto>> getInactiveUsers(@RequestParam int daysSince) {
-        LocalDateTime date = LocalDateTime.now().minusDays(daysSince);
+    public ResponseEntity<List<UserDto>> getUsersNotLoggedInSince(@RequestParam LocalDateTime date) {
         List<UserDto> users = userService.findUsersNotLoggedInSince(date);
         return ResponseEntity.ok(users);
     }
 
-    @Operation(summary = "Get unverified users")
-    @GetMapping("/maintenance/unverified")
+    @Operation(summary = "Get unverified users created before date")
+    @GetMapping("/unverified-before")
     @PreAuthorize("hasAnyRole('ADMIN', 'USER_MANAGER')")
-    public ResponseEntity<List<UserDto>> getUnverifiedUsers(@RequestParam int daysSince) {
-        LocalDateTime date = LocalDateTime.now().minusDays(daysSince);
+    public ResponseEntity<List<UserDto>> getUnverifiedUsersCreatedBefore(@RequestParam LocalDateTime date) {
         List<UserDto> users = userService.findUnverifiedUsersCreatedBefore(date);
         return ResponseEntity.ok(users);
     }
 
     @Operation(summary = "Get locked users")
-    @GetMapping("/maintenance/locked")
+    @GetMapping("/locked")
     @PreAuthorize("hasAnyRole('ADMIN', 'USER_MANAGER')")
     public ResponseEntity<List<UserDto>> getLockedUsers() {
         List<UserDto> users = userService.findLockedUsers();
         return ResponseEntity.ok(users);
+    }
+
+    @Operation(summary = "Check if username exists")
+    @GetMapping("/check/username/{username}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'USER_MANAGER')")
+    public ResponseEntity<Boolean> checkUsernameExists(@PathVariable String username) {
+        boolean exists = userService.existsByUsername(username);
+        return ResponseEntity.ok(exists);
+    }
+
+    @Operation(summary = "Check if email exists")
+    @GetMapping("/check/email/{email}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'USER_MANAGER')")
+    public ResponseEntity<Boolean> checkEmailExists(@PathVariable String email) {
+        boolean exists = userService.existsByEmail(email);
+        return ResponseEntity.ok(exists);
     }
 }

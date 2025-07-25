@@ -1,71 +1,64 @@
 package com.usermanager.domain.entity;
 
 import com.usermanager.domain.enums.ScreenType;
-import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.mapping.Field;
+import org.springframework.data.mongodb.core.index.Indexed;
 
 import java.util.HashSet;
 import java.util.Set;
 
-@Entity
-@Table(name = "screens", indexes = {
-    @Index(name = "idx_screen_code", columnList = "code", unique = true),
-    @Index(name = "idx_screen_type", columnList = "type"),
-    @Index(name = "idx_screen_module", columnList = "module")
-})
+@Document(collection = "screens")
 public class Screen extends BaseEntity {
 
     @NotBlank
     @Size(max = 100)
-    @Column(name = "code", nullable = false, unique = true, length = 100)
+    @Field("code")
+    @Indexed(unique = true)
     private String code;
 
     @NotBlank
     @Size(max = 100)
-    @Column(name = "name", nullable = false, length = 100)
+    @Field("name")
     private String name;
 
     @Size(max = 500)
-    @Column(name = "description", length = 500)
+    @Field("description")
     private String description;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "type", nullable = false, length = 20)
+    @Field("type")
+    @Indexed
     private ScreenType type;
 
     @NotBlank
     @Size(max = 100)
-    @Column(name = "module", nullable = false, length = 100)
+    @Field("module")
+    @Indexed
     private String module;
 
     @Size(max = 255)
-    @Column(name = "route", length = 255)
+    @Field("route")
     private String route;
 
     @Size(max = 255)
-    @Column(name = "component", length = 255)
+    @Field("component")
     private String component;
 
-    @Column(name = "public_access", nullable = false)
+    @Field("public_access")
     private Boolean publicAccess = false;
 
-    @Column(name = "auth_required", nullable = false)
+    @Field("auth_required")
     private Boolean authRequired = true;
 
-    @ElementCollection(fetch = FetchType.LAZY)
-    @CollectionTable(
-        name = "screen_permissions",
-        joinColumns = @JoinColumn(name = "screen_id"),
-        indexes = @Index(name = "idx_screen_permissions_screen_id", columnList = "screen_id")
-    )
-    @Column(name = "permission_code", length = 100)
+    @Field("required_permissions")
     private Set<String> requiredPermissions = new HashSet<>();
 
-    @Column(name = "cache_enabled", nullable = false)
+    @Field("cache_enabled")
     private Boolean cacheEnabled = false;
 
-    @Column(name = "cache_duration")
+    @Field("cache_duration")
     private Integer cacheDuration; // in minutes
 
     // Constructors

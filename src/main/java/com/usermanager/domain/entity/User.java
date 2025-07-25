@@ -1,96 +1,88 @@
 package com.usermanager.domain.entity;
 
 import com.usermanager.domain.enums.UserStatus;
-import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.mapping.DocumentReference;
+import org.springframework.data.mongodb.core.mapping.Field;
+import org.springframework.data.mongodb.core.index.Indexed;
 
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
 
-@Entity
-@Table(name = "users", indexes = {
-    @Index(name = "idx_user_email", columnList = "email", unique = true),
-    @Index(name = "idx_user_username", columnList = "username", unique = true),
-    @Index(name = "idx_user_keycloak_id", columnList = "keycloak_id", unique = true),
-    @Index(name = "idx_user_status", columnList = "status"),
-    @Index(name = "idx_user_created_at", columnList = "created_at")
-})
+@Document(collection = "users")
 public class User extends BaseEntity {
 
     @NotBlank
     @Size(max = 100)
-    @Column(name = "username", nullable = false, unique = true, length = 100)
+    @Field("username")
+    @Indexed(unique = true)
     private String username;
 
     @NotBlank
     @Email
     @Size(max = 255)
-    @Column(name = "email", nullable = false, unique = true, length = 255)
+    @Field("email")
+    @Indexed(unique = true)
     private String email;
 
     @NotBlank
     @Size(max = 100)
-    @Column(name = "first_name", nullable = false, length = 100)
+    @Field("first_name")
     private String firstName;
 
     @NotBlank
     @Size(max = 100)
-    @Column(name = "last_name", nullable = false, length = 100)
+    @Field("last_name")
     private String lastName;
 
     @Size(max = 20)
-    @Column(name = "phone_number", length = 20)
+    @Field("phone_number")
     private String phoneNumber;
 
-    @Column(name = "keycloak_id", unique = true, length = 100)
+    @Field("keycloak_id")
+    @Indexed(unique = true, sparse = true)
     private String keycloakId;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false, length = 20)
+    @Field("status")
+    @Indexed
     private UserStatus status = UserStatus.ACTIVE;
 
-    @Column(name = "email_verified", nullable = false)
+    @Field("email_verified")
     private Boolean emailVerified = false;
 
-    @Column(name = "last_login_at")
+    @Field("last_login_at")
     private LocalDateTime lastLoginAt;
 
-    @Column(name = "login_attempts", nullable = false)
+    @Field("login_attempts")
     private Integer loginAttempts = 0;
 
-    @Column(name = "locked_until")
+    @Field("locked_until")
     private LocalDateTime lockedUntil;
 
     @Size(max = 1000)
-    @Column(name = "profile_picture_url", length = 1000)
+    @Field("profile_picture_url")
     private String profilePictureUrl;
 
     @Size(max = 500)
-    @Column(name = "bio", length = 500)
+    @Field("bio")
     private String bio;
 
-    @Column(name = "department", length = 100)
+    @Field("department")
     private String department;
 
-    @Column(name = "position", length = 100)
+    @Field("position")
     private String position;
 
-    @ManyToMany(fetch = FetchType.LAZY)
-    @JoinTable(
-        name = "user_roles",
-        joinColumns = @JoinColumn(name = "user_id"),
-        inverseJoinColumns = @JoinColumn(name = "role_id"),
-        indexes = {
-            @Index(name = "idx_user_roles_user_id", columnList = "user_id"),
-            @Index(name = "idx_user_roles_role_id", columnList = "role_id")
-        }
-    )
+    @DocumentReference(lazy = true)
+    @Field("roles")
     private Set<Role> roles = new HashSet<>();
 
-    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+    @DocumentReference(lazy = true)
+    @Field("profiles")
     private Set<UserProfile> profiles = new HashSet<>();
 
     // Constructors

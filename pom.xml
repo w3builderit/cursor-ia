@@ -15,7 +15,7 @@
     <artifactId>user-manager-microservice</artifactId>
     <version>1.0.0</version>
     <name>User Manager Microservice</name>
-    <description>User Manager Microservice with Keycloak and PostgreSQL</description>
+    <description>User Manager Microservice with Keycloak and MongoDB</description>
 
     <properties>
         <maven.compiler.source>21</maven.compiler.source>
@@ -36,7 +36,7 @@
         
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-jpa</artifactId>
+            <artifactId>spring-boot-starter-data-mongodb</artifactId>
         </dependency>
         
         <dependency>
@@ -64,18 +64,6 @@
             <groupId>org.keycloak</groupId>
             <artifactId>keycloak-spring-boot-starter</artifactId>
             <version>${keycloak.version}</version>
-        </dependency>
-
-        <!-- Database -->
-        <dependency>
-            <groupId>org.postgresql</groupId>
-            <artifactId>postgresql</artifactId>
-            <scope>runtime</scope>
-        </dependency>
-        
-        <dependency>
-            <groupId>org.flywaydb</groupId>
-            <artifactId>flyway-core</artifactId>
         </dependency>
 
         <!-- MapStruct for DTOs -->
@@ -120,14 +108,14 @@
         
         <dependency>
             <groupId>org.testcontainers</groupId>
-            <artifactId>postgresql</artifactId>
+            <artifactId>mongodb</artifactId>
             <version>${testcontainers.version}</version>
             <scope>test</scope>
         </dependency>
 
         <dependency>
-            <groupId>com.h2database</groupId>
-            <artifactId>h2</artifactId>
+            <groupId>de.flapdoodle.embed</groupId>
+            <artifactId>de.flapdoodle.embed.mongo</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -154,11 +142,6 @@
                         </path>
                     </annotationProcessorPaths>
                 </configuration>
-            </plugin>
-            
-            <plugin>
-                <groupId>org.flywaydb</groupId>
-                <artifactId>flyway-maven-plugin</artifactId>
             </plugin>
         </plugins>
     </build>

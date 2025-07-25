@@ -1,76 +1,56 @@
 package com.usermanager.domain.entity;
 
 import com.usermanager.domain.enums.ProfileType;
-import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.mapping.DocumentReference;
+import org.springframework.data.mongodb.core.mapping.Field;
+import org.springframework.data.mongodb.core.index.Indexed;
 
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-@Entity
-@Table(name = "user_profiles", indexes = {
-    @Index(name = "idx_user_profile_user_id", columnList = "user_id"),
-    @Index(name = "idx_user_profile_type", columnList = "type"),
-    @Index(name = "idx_user_profile_name", columnList = "name")
-})
+@Document(collection = "user_profiles")
 public class UserProfile extends BaseEntity {
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
+    @DocumentReference
+    @Field("user_id")
+    @Indexed
     private User user;
 
     @NotBlank
     @Size(max = 100)
-    @Column(name = "name", nullable = false, length = 100)
+    @Field("name")
+    @Indexed
     private String name;
 
     @Size(max = 500)
-    @Column(name = "description", length = 500)
+    @Field("description")
     private String description;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "type", nullable = false, length = 20)
+    @Field("type")
+    @Indexed
     private ProfileType type;
 
-    @Column(name = "is_default", nullable = false)
+    @Field("is_default")
     private Boolean isDefault = false;
 
-    @Column(name = "is_public", nullable = false)
+    @Field("is_public")
     private Boolean isPublic = false;
 
-    @ElementCollection(fetch = FetchType.LAZY)
-    @CollectionTable(
-        name = "user_profile_attributes",
-        joinColumns = @JoinColumn(name = "profile_id"),
-        indexes = @Index(name = "idx_user_profile_attributes_profile_id", columnList = "profile_id")
-    )
-    @MapKeyColumn(name = "attribute_key", length = 100)
-    @Column(name = "attribute_value", length = 1000)
+    @Field("attributes")
     private Map<String, String> attributes = new HashMap<>();
 
-    @ElementCollection(fetch = FetchType.LAZY)
-    @CollectionTable(
-        name = "user_profile_permissions",
-        joinColumns = @JoinColumn(name = "profile_id"),
-        indexes = @Index(name = "idx_user_profile_permissions_profile_id", columnList = "profile_id")
-    )
-    @Column(name = "permission_code", length = 100)
+    @Field("permissions")
     private Set<String> permissions = new HashSet<>();
 
-    @ElementCollection(fetch = FetchType.LAZY)
-    @CollectionTable(
-        name = "user_profile_preferences",
-        joinColumns = @JoinColumn(name = "profile_id"),
-        indexes = @Index(name = "idx_user_profile_preferences_profile_id", columnList = "profile_id")
-    )
-    @MapKeyColumn(name = "preference_key", length = 100)
-    @Column(name = "preference_value", length = 500)
+    @Field("preferences")
     private Map<String, String> preferences = new HashMap<>();
 
-    @Column(name = "context", length = 100)
+    @Field("context")
     private String context; // e.g., department, project, role context
 
     // Constructors

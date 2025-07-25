@@ -1,53 +1,54 @@
 package com.usermanager.domain.entity;
 
 import com.usermanager.domain.enums.PermissionType;
-import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.mapping.DocumentReference;
+import org.springframework.data.mongodb.core.mapping.Field;
+import org.springframework.data.mongodb.core.index.Indexed;
 
 import java.util.HashSet;
 import java.util.Set;
 
-@Entity
-@Table(name = "permissions", indexes = {
-    @Index(name = "idx_permission_code", columnList = "code", unique = true),
-    @Index(name = "idx_permission_type", columnList = "type"),
-    @Index(name = "idx_permission_resource", columnList = "resource")
-})
+@Document(collection = "permissions")
 public class Permission extends BaseEntity {
 
     @NotBlank
     @Size(max = 100)
-    @Column(name = "code", nullable = false, unique = true, length = 100)
+    @Field("code")
+    @Indexed(unique = true)
     private String code;
 
     @NotBlank
     @Size(max = 100)
-    @Column(name = "name", nullable = false, length = 100)
+    @Field("name")
     private String name;
 
     @Size(max = 500)
-    @Column(name = "description", length = 500)
+    @Field("description")
     private String description;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "type", nullable = false, length = 20)
+    @Field("type")
+    @Indexed
     private PermissionType type;
 
     @NotBlank
     @Size(max = 100)
-    @Column(name = "resource", nullable = false, length = 100)
+    @Field("resource")
+    @Indexed
     private String resource;
 
     @NotBlank
     @Size(max = 50)
-    @Column(name = "action", nullable = false, length = 50)
+    @Field("action")
     private String action;
 
-    @Column(name = "system_permission", nullable = false)
+    @Field("system_permission")
     private Boolean systemPermission = false;
 
-    @ManyToMany(mappedBy = "permissions", fetch = FetchType.LAZY)
+    @DocumentReference(lazy = true)
+    @Field("roles")
     private Set<Role> roles = new HashSet<>();
 
     // Constructors
