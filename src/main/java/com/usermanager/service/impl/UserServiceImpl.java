@@ -40,14 +40,14 @@ public class UserServiceImpl implements UserService {
     @Override
     public UserDto createUser(UserDto userDto) {
         // Validate uniqueness
-        if (existsByUsername(userDto.getUsername())) {
-            throw new IllegalArgumentException("Username already exists: " + userDto.getUsername());
+        if (existsByUsername(userDto.username())) {
+            throw new IllegalArgumentException("Username already exists: " + userDto.username());
         }
-        if (existsByEmail(userDto.getEmail())) {
-            throw new IllegalArgumentException("Email already exists: " + userDto.getEmail());
+        if (existsByEmail(userDto.email())) {
+            throw new IllegalArgumentException("Email already exists: " + userDto.email());
         }
-        if (userDto.getKeycloakId() != null && existsByKeycloakId(userDto.getKeycloakId())) {
-            throw new IllegalArgumentException("Keycloak ID already exists: " + userDto.getKeycloakId());
+        if (userDto.keycloakId() != null && existsByKeycloakId(userDto.keycloakId())) {
+            throw new IllegalArgumentException("Keycloak ID already exists: " + userDto.keycloakId());
         }
 
         User user = userMapper.toEntity(userDto);
@@ -97,13 +97,13 @@ public class UserServiceImpl implements UserService {
                 .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + id));
 
         // Validate uniqueness for updated fields
-        if (!existingUser.getUsername().equals(userDto.getUsername()) && 
-            existsByUsername(userDto.getUsername())) {
-            throw new IllegalArgumentException("Username already exists: " + userDto.getUsername());
+        if (!existingUser.getUsername().equals(userDto.username()) && 
+            existsByUsername(userDto.username())) {
+            throw new IllegalArgumentException("Username already exists: " + userDto.username());
         }
-        if (!existingUser.getEmail().equals(userDto.getEmail()) && 
-            existsByEmail(userDto.getEmail())) {
-            throw new IllegalArgumentException("Email already exists: " + userDto.getEmail());
+        if (!existingUser.getEmail().equals(userDto.email()) && 
+            existsByEmail(userDto.email())) {
+            throw new IllegalArgumentException("Email already exists: " + userDto.email());
         }
 
         userMapper.updateEntity(existingUser, userDto);
